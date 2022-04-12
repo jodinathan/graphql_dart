@@ -19,6 +19,8 @@ abstract class GraphQLType<Value, Serialized> {
   /// Deserializes a serialized value.
   Value deserialize(Serialized serialized);
 
+  dynamic sanitize(dynamic value) => value;
+
   /// Attempts to cast a dynamic [value] into a [Serialized] instance.
   Serialized? convert(value) => value as Serialized?;
 

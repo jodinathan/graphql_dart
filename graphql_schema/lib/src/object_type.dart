@@ -248,13 +248,14 @@ class GraphQLInputObjectType
         errors.add(
             'Unexpected field "$k" encountered in $key. Accepted values on type $name: ${inputFields.map((f) => f.name).toList()}');
       } else {
-        var v = input[k];
-        var result = field.type.validate(k.toString(), v);
+        final v = field.type.sanitize(input[k]);
+        ValidationResult result;
 
-        if (!result.successful) {
-          errors.addAll(result.errors.map((s) => '$key: $s'));
-        } else {
+        if (v == null ||
+            (result = field.type.validate(k.toString(), v)).successful) {
           out[k] = v;
+        } else {
+          errors.addAll(result.errors.map((s) => '$key: $s'));
         }
       }
     });
@@ -285,7 +286,13 @@ class GraphQLInputObjectType
       if (field == null) {
         throw UnsupportedError('Unexpected field "$k" encountered in map.');
       }
-      return out..[k.toString()] = field.type.deserialize(value[k]);
+      var sval = value[k];
+
+      if (sval != null) {
+        sval = field.type.deserialize(sval);
+      }
+
+      return out..[k.toString()] = sval;
     });
   }
 

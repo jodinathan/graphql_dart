@@ -26,32 +26,29 @@ _GraphQLStringType graphQLStringRange(int min, int max) =>
 final GraphQLScalarType<DateTime, String> graphQLDate = _GraphQLDateType._();
 
 /// A signed 32‐bit integer.
-final graphQLInt = GraphQLNumType<int>('Int');
+final graphQLInt = GraphQLIntType();
 
 final graphQLPositiveInt =
-    GraphQLNumMinType<int>('Int', 1, description: 'Positive integer (>= 1)');
+    GraphQLIntMinType(1, description: 'Positive integer (>= 1)');
 
-final graphQLNonPositiveInt = GraphQLNumMaxType<int>('Int', 0,
+final graphQLNonPositiveInt = GraphQLIntMaxType(0,
     description: 'Non positive integer (<= 0)');
 
 final graphQLNegativeInt =
-    GraphQLNumMaxType<int>('Int', -1, description: 'Negative integer (<= -1)');
+    GraphQLIntMaxType(-1, description: 'Negative integer (<= -1)');
 
-final graphQLNonNegativeInt = GraphQLNumMinType<int>('Int', 0,
+final graphQLNonNegativeInt = GraphQLIntMinType(0,
     description: 'Non negative integer (>= 0)');
 
-GraphQLNumMinType<int> graphQLIntMin(int min) => GraphQLNumMinType('Int', min);
+GraphQLIntMinType graphQLIntMin(int min) => GraphQLIntMinType(min);
 
-GraphQLNumMaxType<int> graphQLIntMax(int max) => GraphQLNumMaxType('Int', max);
+GraphQLIntMaxType graphQLIntMax(int max) => GraphQLIntMaxType(max);
 
-GraphQLNumRangedType<int> graphQLIntRange(int min, int max) =>
-    GraphQLNumRangedType('Int', min, max);
+GraphQLIntRangedType graphQLIntRange(int min, int max) =>
+    GraphQLIntRangedType(min, max);
 
 /// A signed double-precision floating-point value.
-final graphQLFloat = GraphQLNumType<double>(
-  'Float',
-  //'A signed double-precision floating-point value.'
-);
+final graphQLFloat = GraphQLFloatType();
 
 abstract class GraphQLScalarType<Value, Serialized>
     extends GraphQLType<Value, Serialized>
@@ -88,45 +85,86 @@ class _GraphQLBoolType extends GraphQLScalarType<bool, bool> {
   GraphQLType<bool, bool> coerceToInputObject() => this;
 }
 
-class GraphQLNumType<T extends num> extends GraphQLScalarType<T, T> {
-  GraphQLNumType(this.name, {this.description = ''});
+class GraphQLIntType extends GraphQLScalarType<int, num> {
+  GraphQLIntType({this.description = ''});
 
   @override
-  final String name;
+  final String name = 'Int';
   @override
   String description;
 
   @override
-  ValidationResult<T> validate(String key, input) {
-    if (input is! T?) {
-      return ValidationResult._failure(['Expected "$key" to be $name.']);
+  ValidationResult<int> validate(String key, input) {
+    if (input is! int?) {
+      return ValidationResult._failure(['Expected "$key" to be $name but is ${input.runtimeType}.']);
     }
 
     return ValidationResult._ok(input);
   }
 
   @override
-  T deserialize(T serialized) {
-    return serialized;
+  int deserialize(num serialized) {
+    return serialized.toInt();
   }
 
   @override
-  T serialize(T value) {
+  int sanitize(dynamic value) {
+    return (value as num).toInt();
+  }
+
+  @override
+  num serialize(int value) {
     return value;
   }
 
   @override
-  GraphQLType<T, T> coerceToInputObject() => this;
+  GraphQLType<int, num> coerceToInputObject() => this;
 }
 
-class GraphQLNumMinType<T extends num> extends GraphQLNumType<T> {
-  GraphQLNumMinType(String name, this.min, {String? description})
-      : super(name, description: description ?? '$name with minimum of $min');
-
-  final T min;
+class GraphQLFloatType extends GraphQLScalarType<double, num> {
+  GraphQLFloatType({this.description = ''});
 
   @override
-  ValidationResult<T> validate(String key, T input) {
+  final String name = 'Float';
+  @override
+  String description;
+
+  @override
+  ValidationResult<double> validate(String key, input) {
+    if (input is! double?) {
+      return ValidationResult._failure(['Expected "$key" to be $name but is ${input.runtimeType}.']);
+    }
+
+    return ValidationResult._ok(input);
+  }
+
+  @override
+  double deserialize(num serialized) {
+    return serialized.toDouble();
+  }
+
+  @override
+  double sanitize(dynamic value) {
+    return (value as num).toDouble();
+  }
+
+  @override
+  num serialize(double value) {
+    return value;
+  }
+
+  @override
+  GraphQLType<double, num> coerceToInputObject() => this;
+}
+
+class GraphQLIntMinType extends GraphQLIntType {
+  GraphQLIntMinType(this.min, {String? description})
+      : super(description: description ?? 'Int with minimum of $min');
+
+  final int min;
+
+  @override
+  ValidationResult<int> validate(String key, int input) {
     var ret = super.validate(key, input);
 
     if (ret.successful && input < min) {
@@ -138,14 +176,14 @@ class GraphQLNumMinType<T extends num> extends GraphQLNumType<T> {
   }
 }
 
-class GraphQLNumMaxType<T extends num> extends GraphQLNumType<T> {
-  GraphQLNumMaxType(String name, this.max, {String? description})
-      : super(name, description: description ?? '$name with maximum of $max');
+class GraphQLIntMaxType extends GraphQLIntType {
+  GraphQLIntMaxType(this.max, {String? description})
+      : super(description: description ?? 'Int with maximum of $max');
 
-  final T max;
+  final int max;
 
   @override
-  ValidationResult<T> validate(String key, T input) {
+  ValidationResult<int> validate(String key, int input) {
     var ret = super.validate(key, input);
 
     if (ret.successful && input > max) {
@@ -157,17 +195,17 @@ class GraphQLNumMaxType<T extends num> extends GraphQLNumType<T> {
   }
 }
 
-class GraphQLNumRangedType<T extends num> extends GraphQLNumType<T> {
-  GraphQLNumRangedType(String name, this.min, this.max, {String? description})
-      : super(name,
+class GraphQLIntRangedType extends GraphQLIntType {
+  GraphQLIntRangedType(this.min, this.max, {String? description})
+      : super(
             description: description ??
-                '$name between $min and $max. (>= $min && <= $max)');
+                'Int between $min and $max. (>= $min && <= $max)');
 
-  final T min;
-  final T max;
+  final int min;
+  final int max;
 
   @override
-  ValidationResult<T> validate(String key, T input) {
+  ValidationResult<int> validate(String key, int input) {
     var ret = super.validate(key, input);
 
     if (ret.successful && (input < min || input > max)) {
