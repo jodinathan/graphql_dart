@@ -275,7 +275,7 @@ class GraphQL {
     var queryType = schema.queryType;
     var selectionSet = query.selectionSet;
 
-    return await executeSelectionSet(document, selectionSet, queryType,
+    return executeSelectionSet(document, selectionSet, queryType,
         initialValue, variableValues, globalVariables,
         lazy: makeLazy(variableValues));
   }
@@ -295,7 +295,7 @@ class GraphQL {
     }
 
     var selectionSet = mutation.selectionSet;
-    return await executeSelectionSet(document, selectionSet, mutationType,
+    return executeSelectionSet(document, selectionSet, mutationType,
         initialValue, variableValues, globalVariables,
         lazy: makeLazy(variableValues));
   }
@@ -460,7 +460,7 @@ class GraphQL {
               continue;
             }
 
-            futureResponseValue = executeField(
+            futureResponseValue = await executeField(
                 document,
                 fieldName,
                 subType,
@@ -473,7 +473,7 @@ class GraphQL {
                 lazy: nextLazy.toList());
           }
 
-          final val = resultMap[responseKey] = await futureResponseValue;
+          final val = resultMap[responseKey] = futureResponseValue;
 
           for (final lz in doneLazy) {
             if (lz.first as String == responseKey) {
@@ -544,10 +544,6 @@ class GraphQL {
             .computeValue(variableValues as Map<String, dynamic>);
 
         try {
-          print('INputValue00 $inputValue $argumentName, $argumentType, ${inputValue.runtimeType}');
-          inputValue = inputValue;
-          print('INputValue22 $inputValue $argumentName, $argumentType, ${inputValue.runtimeType}');
-
           final validation = argumentType.validate(argumentName, inputValue);
 
           if (!validation.successful) {
@@ -582,8 +578,7 @@ class GraphQL {
 
             coercedValues[argumentName] = coercedValue;
           }
-        } on TypeError catch (e, st) {
-          print('Seetevah $st');
+        } on TypeError catch (e) {
           var err = argumentValue.value.span?.start;
           var locations = <GraphExceptionErrorLocation>[];
           if (err != null) {
@@ -726,8 +721,6 @@ class GraphQL {
       try {
         var validation =
             t.validate(fieldName!, foldToStringDynamic(result as Map?));
-
-        print('Validating $t: ${validation.successful}\n${validation.errors}');
 
         if (validation.successful) {
           types.add(t);
