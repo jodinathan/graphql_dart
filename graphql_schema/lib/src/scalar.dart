@@ -31,14 +31,14 @@ final graphQLInt = GraphQLIntType();
 final graphQLPositiveInt =
     GraphQLIntMinType(1, description: 'Positive integer (>= 1)');
 
-final graphQLNonPositiveInt = GraphQLIntMaxType(0,
-    description: 'Non positive integer (<= 0)');
+final graphQLNonPositiveInt =
+    GraphQLIntMaxType(0, description: 'Non positive integer (<= 0)');
 
 final graphQLNegativeInt =
     GraphQLIntMaxType(-1, description: 'Negative integer (<= -1)');
 
-final graphQLNonNegativeInt = GraphQLIntMinType(0,
-    description: 'Non negative integer (>= 0)');
+final graphQLNonNegativeInt =
+    GraphQLIntMinType(0, description: 'Non negative integer (>= 0)');
 
 GraphQLIntMinType graphQLIntMin(int min) => GraphQLIntMinType(min);
 
@@ -96,7 +96,8 @@ class GraphQLIntType extends GraphQLScalarType<int, num> {
   @override
   ValidationResult<int> validate(String key, input) {
     if (input is! int?) {
-      return ValidationResult._failure(['Expected "$key" to be $name but is ${input.runtimeType}.']);
+      return ValidationResult._failure(
+          ['Expected "$key" to be $name but is ${input.runtimeType}.']);
     }
 
     return ValidationResult._ok(input);
@@ -132,7 +133,8 @@ class GraphQLFloatType extends GraphQLScalarType<double, num> {
   @override
   ValidationResult<double> validate(String key, input) {
     if (input is! double?) {
-      return ValidationResult._failure(['Expected "$key" to be $name but is ${input.runtimeType}.']);
+      return ValidationResult._failure(
+          ['Expected "$key" to be $name but is ${input.runtimeType}.']);
     }
 
     return ValidationResult._ok(input);
