@@ -7,91 +7,91 @@ packages:
       name: angel3_auth
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "4.1.2"
+    version: "6.0.0"
   angel3_client:
     dependency: transitive
     description:
       name: angel3_client
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "4.2.0"
+    version: "6.0.0"
   angel3_container:
     dependency: transitive
     description:
       name: angel3_container
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "3.1.1"
+    version: "6.0.0"
   angel3_file_service:
     dependency: "direct main"
     description:
       name: angel3_file_service
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "4.1.0"
+    version: "6.0.0"
   angel3_framework:
     dependency: "direct main"
     description:
       name: angel3_framework
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "4.2.4"
+    version: "6.0.0"
   angel3_http_exception:
     dependency: transitive
     description:
       name: angel3_http_exception
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "3.1.0"
+    version: "6.0.1"
   angel3_mock_request:
     dependency: transitive
     description:
       name: angel3_mock_request
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "2.1.0"
+    version: "6.0.0"
   angel3_model:
     dependency: transitive
     description:
       name: angel3_model
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "3.1.1"
+    version: "6.0.0"
   angel3_route:
     dependency: transitive
     description:
       name: angel3_route
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "5.2.0"
+    version: "6.0.0"
   angel3_serialize:
     dependency: "direct dev"
     description:
       name: angel3_serialize
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "4.1.0"
+    version: "6.0.0"
   angel3_validate:
     dependency: "direct main"
     description:
       name: angel3_validate
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "4.1.0"
+    version: "6.0.0"
   angel3_websocket:
     dependency: "direct main"
     description:
       name: angel3_websocket
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "4.1.2"
+    version: "6.0.0"
   async:
     dependency: transitive
     description:
       name: async
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "2.8.2"
+    version: "2.9.0"
   belatuk_code_buffer:
     dependency: transitive
     description:
@@ -140,7 +140,7 @@ packages:
       name: collection
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.15.0"
+    version: "1.16.0"
   crypto:
     dependency: transitive
     description:
@@ -158,24 +158,24 @@ packages:
   graphql_parser2:
     dependency: "direct main"
     description:
-      path: "../graphql_parser"
-      relative: true
-    source: path
-    version: "3.0.0"
+      name: graphql_parser2
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "4.0.0"
   graphql_schema2:
     dependency: "direct main"
     description:
-      path: "../graphql_schema"
-      relative: true
-    source: path
-    version: "3.0.0"
+      name: graphql_schema2
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "4.0.0"
   graphql_server2:
     dependency: "direct main"
     description:
-      path: "../graphql_server"
-      relative: true
-    source: path
-    version: "3.0.0"
+      name: graphql_server2
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "4.0.0"
   http:
     dependency: transitive
     description:
@@ -266,7 +266,7 @@ packages:
       name: source_span
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.8.2"
+    version: "1.9.0"
   stack_trace:
     dependency: transitive
     description:
@@ -324,4 +324,4 @@ packages:
     source: hosted
     version: "2.1.0"
 sdks:
-  dart: ">=2.15.0 <3.0.0"
+  dart: ">=2.16.0 <3.0.0"
