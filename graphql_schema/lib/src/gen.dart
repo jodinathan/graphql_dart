@@ -1,51 +1,39 @@
 part of graphql_schema.src.schema;
 
-/// Shorthand for generating a [GraphQLObjectType].
-GraphQLObjectType objectType(String name,
-    {String? description,
-    bool isInterface = false,
-    Iterable<GraphQLObjectField> fields = const [],
-    Iterable<GraphQLObjectType> interfaces = const [],
-    Iterable<GraphQLObjectType> subs = const [],
-    String? polymorphicName}) {
-  var obj = GraphQLObjectType(name, description,
-      isInterface: isInterface, polymorphicName: polymorphicName)
-    ..fields.addAll(fields);
+typedef GraphObject = GraphQLObjectType;
 
-  if (interfaces.isNotEmpty == true) {
-    for (var i in interfaces) {
-      obj.inheritFrom(i);
-    }
-  }
+// GraphQLObjectType objectType(String name,
+//     {String? description,
+//     bool isInterface = false,
+//     Iterable<GraphQLObjectField> fields = const [],
+//     Iterable<GraphQLObjectType> interfaces = const [],
+//     Iterable<GraphQLObjectType> subs = const [],
+//     String? polymorphicName}) {
+//   var obj = GraphQLObjectType(name, description: description,
+//       isInterface: isInterface, polymorphicName: polymorphicName)
+//     ..fields.addAll(fields);
 
-  if (subs.isNotEmpty) {
-    for (final sub in subs) {
-      sub.inheritFrom(obj);
-    }
-  }
+//   if (interfaces.isNotEmpty == true) {
+//     for (var i in interfaces) {
+//       obj.inheritFrom(i);
+//     }
+//   }
 
-  return obj;
-}
+//   if (subs.isNotEmpty) {
+//     for (final sub in subs) {
+//       sub.inheritFrom(obj);
+//     }
+//   }
 
-/// Shorthand for generating a [GraphQLObjectField].
-GraphQLObjectField<T, Serialized> field<T, Serialized>(
-    String name, GraphQLType<T, Serialized> type,
-    {Iterable<GraphQLFieldInput<T, Serialized>> inputs = const [],
-    GraphQLFieldResolver<T, Serialized>? resolve,
-    String? deprecationReason,
-    String? description}) {
-  return GraphQLObjectField<T, Serialized>(name, type,
-      arguments: inputs,
-      resolve: resolve,
-      description: description,
-      deprecationReason: deprecationReason);
-}
+//   return obj;
+// }
+
 
 /// Shorthand for generating a [GraphQLInputObjectType].
 GraphQLInputObjectType inputObjectType(String name,
     {String? description,
     Iterable<GraphQLInputObjectField> inputFields = const []}) {
-  return GraphQLInputObjectType(name,
+  return GraphQLInputDynamicObjectType(name,
       description: description, inputFields: inputFields);
 }
 

@@ -15,7 +15,7 @@ class GraphQLUnionType
 
   GraphQLUnionType(
       this.name,
-      Iterable<GraphQLType<Map<String, dynamic>, Map<String, dynamic>>>
+      Iterable<GraphQLType<dynamic, Map<String, dynamic>>>
           possibleTypes) {
     assert(possibleTypes.every((t) => t is GraphQLObjectType),
         'The member types of a Union type must all be Object base types; Scalar, Interface and Union types must not be member types of a Union. Similarly, wrapping types must not be member types of a Union.');

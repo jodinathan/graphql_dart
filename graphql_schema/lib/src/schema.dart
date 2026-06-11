@@ -1,11 +1,15 @@
 library graphql_schema.src.schema;
 
 import 'dart:async';
+import 'dart:math';
+import 'dart:convert' as conv;
 
 import 'package:collection/collection.dart';
 //import 'package:meta/meta.dart';
 import 'package:source_span/source_span.dart';
 import 'package:collection/collection.dart' show IterableExtension;
+import 'package:email_validator/email_validator.dart' as ev;
+import 'package:string_validator/string_validator.dart' as validator;
 
 part 'argument.dart';
 
@@ -24,6 +28,12 @@ part 'type.dart';
 part 'union.dart';
 
 part 'validation_result.dart';
+
+part 'point.dart';
+
+part 'rectangle.dart';
+
+part 'duration.dart';
 
 /// The schema against which queries, mutations, and subscriptions are executed.
 class GraphQLSchema {
@@ -95,7 +105,7 @@ class GraphQLException implements Exception {
   }
 
   @override
-  String toString() => toJson().toString();
+  String toString() => conv.JsonEncoder.withIndent('  ').convert(toJson());
 }
 
 /// One of an arbitrary number of errors that may occur during the execution of a GraphQL query.

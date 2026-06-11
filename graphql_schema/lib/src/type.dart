@@ -6,7 +6,9 @@ part of graphql_schema.src.schema;
 ///
 /// A [GraphQLType] represents values of type [Value] as values of type [Serialized]; for example, a
 /// [GraphQLType] that serializes objects into `String`s.
-abstract class GraphQLType<Value, Serialized> {
+abstract class GraphQLType<Value, Serialized> implements GraphQLBaseType {
+  const GraphQLType();
+
   /// The name of this type.
   String? get name;
 
@@ -25,7 +27,7 @@ abstract class GraphQLType<Value, Serialized> {
   Serialized? convert(value) => value as Serialized?;
 
   /// Performs type coercion against an [input] value, and returns a list of errors if the validation was unsuccessful.
-  ValidationResult<Serialized> validate(String key, covariant dynamic input);
+  ValidationResult validate(String key, covariant dynamic input);
 
   /// Creates a non-nullable type that represents this type, and enforces that a field of this type is present in input data.
   GraphQLType<Value, Serialized> nonNullable();
@@ -36,22 +38,30 @@ abstract class GraphQLType<Value, Serialized> {
   @override
   String toString() => name!;
 
-  GraphQLListType<Value, Serialized> list() =>
-      GraphQLListType<Value, Serialized>(this);
+  GraphQLListType<GraphQLType<Value, Serialized>, Value, Serialized> list() =>
+      GraphQLListType<GraphQLType<Value, Serialized>, Value, Serialized>(this);
 }
 
 /// Shorthand to create a [GraphQLListType].
-GraphQLListType<Value, Serialized> listOf<Value, Serialized>(
-        GraphQLType<Value, Serialized> innerType) =>
-    GraphQLListType<Value, Serialized>(innerType);
+GraphQLListType<OfType, Value, Serialized>
+    listOf<OfType extends GraphQLType<Value, Serialized>, Value, Serialized>(
+            OfType innerType) =>
+        GraphQLListType(innerType);
+
+typedef GraphList<OfType extends GraphQLType<Value, Serialized>, Value,
+        Serialized>
+    = GraphQLListType<OfType, Value, Serialized>;
 
 /// A special [GraphQLType] that indicates that input vales should be a list of another type, [ofType].
-class GraphQLListType<Value, Serialized>
-    extends GraphQLType<List<Value>, List<Serialized>>
-    with _NonNullableMixin<List<Value>, List<Serialized>> {
-  final GraphQLType<Value, Serialized> ofType;
+class GraphQLListType<OfType extends GraphQLType<Value, Serialized>, Value,
+        Serialized> extends GraphQLType<List<Value>, List<Serialized>>
+    with
+        _NonNullableMixin<List<Value>, List<Serialized>>,
+        GraphQLDelegatedType<OfType, Value, Serialized> {
+  @override
+  final OfType ofType;
 
-  GraphQLListType(this.ofType);
+  const GraphQLListType(this.ofType);
 
   @override
   List<Serialized>? convert(value) {
@@ -113,24 +123,53 @@ class GraphQLListType<Value, Serialized>
 
   @override
   GraphQLType<List<Value>, List<Serialized>> coerceToInputObject() =>
-      GraphQLListType<Value, Serialized>(ofType.coerceToInputObject());
+      GraphQLListType<GraphQLType<Value, Serialized>, Value, Serialized>(
+          ofType.coerceToInputObject());
 }
 
-abstract class _NonNullableMixin<Value, Serialized>
-    implements GraphQLType<Value, Serialized> {
-  GraphQLType<Value, Serialized>? _nonNullableCache;
+class GraphQLFixedLengthListType<OfType extends GraphQLType<Value, Serialized>,
+    Value, Serialized> extends GraphQLListType<OfType, Value, Serialized> {
+  const GraphQLFixedLengthListType(super.ofType, this.length);
+
+  final int length;
 
   @override
-  GraphQLType<Value, Serialized> nonNullable() =>
-      _nonNullableCache ??= GraphQLNonNullableType<Value, Serialized>._(this);
+  ValidationResult<List<Serialized>> validate(String key, List input) {
+    final ret = super.validate(key, input);
+
+    if (ret.successful && input.length != length) {
+      return ValidationResult._failure(['Expected "$key" to be a list of length $length.']);
+    }
+
+    return ret;
+  }
 }
 
-/// A special [GraphQLType] that indicates that input values should both be non-null, and be valid when asserted against another type, named [ofType].
-class GraphQLNonNullableType<Value, Serialized>
-    extends GraphQLType<Value, Serialized> {
-  final GraphQLType<Value, Serialized> ofType;
+mixin _NonNullableMixin<Value, Serialized>
+    implements GraphQLType<Value, Serialized> {
+  @override
+  GraphQLType<Value, Serialized> nonNullable() =>
+      GraphQLNonNullableType<GraphQLType<Value, Serialized>, Value, Serialized>(
+          this);
+}
 
-  GraphQLNonNullableType._(this.ofType);
+mixin GraphQLDelegatedType<
+    OfType extends GraphQLType<Value, Serialized>, Value, Serialized> {
+  OfType get ofType;
+}
+
+typedef GraphNonNull<OfType extends GraphQLType<Value, Serialized>, Value,
+        Serialized>
+    = GraphQLNonNullableType<OfType, Value, Serialized>;
+
+/// A special [GraphQLType] that indicates that input values should both be non-null, and be valid when asserted against another type, named [ofType].
+class GraphQLNonNullableType<OfType extends GraphQLType<Value, Serialized>,
+        Value, Serialized> extends GraphQLType<Value, Serialized>
+    with GraphQLDelegatedType<OfType, Value, Serialized> {
+  @override
+  final OfType ofType;
+
+  const GraphQLNonNullableType(this.ofType);
 
   @override
   String? get name => null; //innerType.name;
@@ -145,7 +184,7 @@ class GraphQLNonNullableType<Value, Serialized>
   }
 
   @override
-  ValidationResult<Serialized> validate(String key, Serialized input) {
+  ValidationResult validate(String key, Serialized input) {
     if (input == null) {
       return ValidationResult._failure(
           ['Expected "$key" to be a non-null value.']);

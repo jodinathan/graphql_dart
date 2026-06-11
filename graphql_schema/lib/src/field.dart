@@ -4,13 +4,22 @@ part of graphql_schema.src.schema;
 typedef GraphQLFieldResolver<Value, Serialized> = FutureOr<Value> Function(
     Serialized serialized, Map<String, dynamic> argumentValues);
 
+const graphQLStringPair = GraphQLStringPairType();
+
+abstract interface class GraphQLBaseType {
+  const GraphQLBaseType();
+
+  String? get name;
+  String? get description;
+}
+
 /// A field on a [GraphQLObjectType].
 ///
 /// It can have input values and additional documentation, and explicitly declares it shape
 /// within the schema.
-class GraphQLObjectField<Value, Serialized> {
+class GraphQLObjectField<Value, Serialized> implements GraphQLBaseType {
   /// The list of input values this field accepts, if any.
-  final List<GraphQLFieldInput> inputs = <GraphQLFieldInput>[];
+  final List<GraphQLInputObjectField> inputs;
 
   /// The name of this field in serialized input.
   final String name;
@@ -27,17 +36,11 @@ class GraphQLObjectField<Value, Serialized> {
   /// The reason that this field, if it is deprecated, was deprecated.
   final String? deprecationReason;
 
-  GraphQLObjectField(this.name, this.type,
-      {Iterable<GraphQLFieldInput> arguments = const <GraphQLFieldInput>[],
-      required this.resolve,
+  const GraphQLObjectField(this.name, this.type,
+      {this.inputs = const <GraphQLFieldInput>[],
+      this.resolve,
       this.deprecationReason,
-      this.description}) {
-//    assert(type != null, 'GraphQL fields must specify a `type`.');
-//    assert(
-//        resolve != null, 'GraphQL fields must specify a `resolve` callback.');
-//    this.inputs.addAll(arguments ?? <GraphQLFieldInput>[]);
-    inputs.addAll(arguments);
-  }
+      this.description});
 
   /// Returns `true` if this field has a [deprecationReason].
   bool get isDeprecated => deprecationReason?.isNotEmpty == true;
@@ -59,5 +62,15 @@ class GraphQLObjectField<Value, Serialized> {
       other.deprecationReason == deprecationReason &&
       other.type == type &&
       other.resolve == resolve &&
-      const ListEquality<GraphQLFieldInput>().equals(other.inputs, inputs);
+      const ListEquality<GraphQLInputObjectField>()
+          .equals(other.inputs, inputs);
+
+  GraphQLObjectField<Value, Serialized> copyWith(
+          {String? name, GraphQLType<Value, Serialized>? type}) =>
+      GraphQLObjectField<Value, Serialized>(
+          name ?? this.name, type ?? this.type,
+          inputs: inputs,
+          resolve: resolve,
+          description: description,
+          deprecationReason: deprecationReason);
 }

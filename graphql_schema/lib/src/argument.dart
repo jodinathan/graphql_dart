@@ -1,24 +1,8 @@
 part of graphql_schema.src.schema;
 
 /// An input to a GraphQL field. This is analogous to a function parameter in Dart.
-class GraphQLFieldInput<Value, Serialized> {
-  /// The name of this field.
-  final String name;
-
-  /// The type that input values must conform to.
-  final GraphQLType<Value, Serialized> type;
-
-  /// An optional default value for this field.
-  final Value? defaultValue;
-
-  /// An optional description for this field.
-  ///
-  /// This is useful when documenting your API for consumers like GraphiQL.
-  final String? description;
-
-  /// If [defaultValue] is `null`, and `null` is a valid value for this parameter, set this to `true`.
-  final bool defaultsToNull;
-
+class GraphQLFieldInput<Value, Serialized>
+    extends GraphQLInputObjectField<Value, Serialized> {
   static bool _isInputTypeOrScalar(GraphQLType type) {
     if (type is GraphQLInputObjectType) {
       return true;
@@ -35,11 +19,15 @@ class GraphQLFieldInput<Value, Serialized> {
     }
   }
 
-  GraphQLFieldInput(this.name, this.type,
-      {this.defaultValue, this.defaultsToNull = false, this.description}) {
-    assert(_isInputTypeOrScalar(type),
-        'All inputs to a GraphQL field must either be scalar types, or explicitly marked as INPUT_OBJECT. Call `GraphQLObjectType.asInputObject()` on any object types you are passing as inputs to a field.');
-  }
+  const GraphQLFieldInput(String name, GraphQLType<Value, Serialized> type,
+      {Value? defaultValue, bool defaultsToNull = false, String? description})
+      : assert(type is! GraphQLObjectType && type is! GraphQLUnionType
+      && type is! GraphQLDelegatedType<GraphQLObjectType, dynamic, Map<String, dynamic>>,
+            'All inputs to a GraphQL field must either be scalar types, or explicitly marked as INPUT_OBJECT. Call `GraphQLObjectType.asInputObject()` on any object types you are passing as inputs to a field.'),
+        super(name, type,
+            defaultValue: defaultValue,
+            description: description,
+            defaultsToNull: defaultsToNull);
 
   @override
   bool operator ==(other) =>

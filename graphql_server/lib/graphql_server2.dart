@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:graphql_parser2/graphql_parser2.dart';
 import 'package:graphql_schema2/graphql_schema2.dart';
+import 'package:tuple/tuple.dart';
 import 'introspection.dart';
 
 /// Transforms any [Map] into `Map<String, dynamic>`.
@@ -34,6 +35,9 @@ class JsonPathArgument {
   void complete(dynamic value) {
     variableValues[definition.variable.name] = value ?? defaultValue;
   }
+
+  @override
+  String toString() => 'JsonPathArgumnet($path)';
 }
 
 /// A Dart implementation of a GraphQL server.
@@ -46,21 +50,25 @@ class GraphQL {
   final FutureOr<T> Function<T>(T, String?, Map<String, dynamic>)?
       defaultFieldResolver;
 
-  GraphQLSchema _schema;
+  late GraphQLSchema _schema;
+  final Map<GraphQLType, Iterable<GraphQLType>> subtypes;
+  late CollectTypes _collectTypes;
 
-  GraphQL(GraphQLSchema schema,
+  GraphQL(this._schema,
       {bool introspect = true,
       this.defaultFieldResolver,
-      List<GraphQLType> customTypes = const <GraphQLType>[]})
-      : _schema = schema {
+      this.subtypes = const {},
+      List<GraphQLType> customTypes = const <GraphQLType>[]}) {
     if (customTypes.isNotEmpty == true) {
       this.customTypes.addAll(customTypes);
     }
 
-    var allTypes = fetchAllTypes(schema, [...this.customTypes]);
+    _collectTypes = CollectTypes(_schema, [...this.customTypes]);
+
+    var allTypes = _collectTypes.types.toList();
 
     if (introspect) {
-      _schema = reflectSchema(_schema, allTypes);
+      _schema = _collectTypes.reflectSchema(_schema, allTypes);
     }
 
     for (var type in allTypes.toSet()) {
@@ -83,7 +91,8 @@ class GraphQL {
   }
 
   GraphQLType convertType(TypeContext ctx,
-      {bool usePolymorphicName = false, GraphQLObjectType? parent}) {
+      {bool usePolymorphicName = false,
+      Iterable<GraphQLObjectType> parents = const []}) {
     var listType = ctx.listType;
     var typeName = ctx.typeName;
     if (listType != null) {
@@ -91,6 +100,23 @@ class GraphQL {
       return GraphQLListType(convert);
     } else if (typeName != null) {
       final name = typeName.name;
+
+      usePolymorphicName = usePolymorphicName && parents.isNotEmpty;
+
+      if (usePolymorphicName) {
+        final ret = customTypes.firstWhereOrNull((t) {
+          if (t is GraphQLObjectType) {
+            return t.polymorphicName == name &&
+                parents.any((p) => p.possibleTypes.contains(t));
+          }
+
+          return false;
+        });
+
+        if (ret != null) {
+          return ret;
+        }
+      }
 
       switch (name) {
         case 'Int':
@@ -107,20 +133,6 @@ class GraphQL {
         case 'DateTime':
           return graphQLDate;
         default:
-          usePolymorphicName = usePolymorphicName && parent != null;
-
-          if (usePolymorphicName) {
-            final ret = customTypes.firstWhereOrNull((t) {
-              return t is GraphQLObjectType &&
-                  t.polymorphicName == name &&
-                  parent.possibleTypes.contains(t);
-            });
-
-            if (ret != null) {
-              return ret;
-            }
-          }
-
           return customTypes.firstWhere((t) {
             return t.name == name;
           },
@@ -138,6 +150,18 @@ class GraphQL {
       Map<String, dynamic> variableValues = const {},
       initialValue,
       Map<String, dynamic> globalVariables = const {}}) {
+    final operation = parseDocument(text, sourceUrl: sourceUrl);
+
+    return executeDocument(operation,
+        variableValues: variableValues,
+        initialValue: initialValue,
+        globalVariables: globalVariables);
+  }
+
+  DocumentContext parseDocument(
+    String text, {
+    sourceUrl,
+  }) {
     var tokens = scan(text, sourceUrl: sourceUrl);
     var parser = Parser(tokens);
     var document = parser.parseDocument();
@@ -150,14 +174,28 @@ class GraphQL {
           .toList());
     }
 
-    return executeRequest(
-      _schema,
-      document,
-      operationName: operationName,
-      initialValue: initialValue,
-      variableValues: variableValues,
-      globalVariables: globalVariables,
-    );
+    return document;
+  }
+
+  Future executeDocument(DocumentContext document,
+      {Map<String, dynamic> variableValues = const <String, dynamic>{},
+      initialValue,
+      String? operationName,
+      Map<String, dynamic> globalVariables = const <String, dynamic>{}}) async {
+    final operation = getOperation(document, operationName);
+    var coercedVariableValues =
+        coerceVariableValues(_schema, operation, variableValues);
+
+    if (operation.isQuery) {
+      return await executeQuery(document, operation, _schema,
+          coercedVariableValues, initialValue, globalVariables);
+    } else if (operation.isSubscription) {
+      return await subscribe(document, operation, _schema,
+          coercedVariableValues, globalVariables, initialValue);
+    } else {
+      return executeMutation(document, operation, _schema,
+          coercedVariableValues, initialValue, globalVariables);
+    }
   }
 
   Future executeRequest(GraphQLSchema schema, DocumentContext document,
@@ -165,19 +203,10 @@ class GraphQL {
       Map<String, dynamic> variableValues = const <String, dynamic>{},
       initialValue,
       Map<String, dynamic> globalVariables = const <String, dynamic>{}}) async {
-    var operation = getOperation(document, operationName);
-    var coercedVariableValues =
-        coerceVariableValues(schema, operation, variableValues);
-    if (operation.isQuery) {
-      return await executeQuery(document, operation, schema,
-          coercedVariableValues, initialValue, globalVariables);
-    } else if (operation.isSubscription) {
-      return await subscribe(document, operation, schema, coercedVariableValues,
-          globalVariables, initialValue);
-    } else {
-      return executeMutation(document, operation, schema, coercedVariableValues,
-          initialValue, globalVariables);
-    }
+    return executeDocument(document,
+        variableValues: variableValues,
+        initialValue: initialValue,
+        globalVariables: globalVariables);
   }
 
   OperationDefinitionContext getOperation(
@@ -335,7 +364,7 @@ class GraphQL {
           selectionSet.span!);
     }
 
-    var fields = objFields.values.first.values.first;
+    var fields = objFields.values.first.item2;
     var fieldName = fields.first.field!.fieldName.alias?.name ??
         fields.first.field!.fieldName.name;
     var field = fields.first;
@@ -415,7 +444,12 @@ class GraphQL {
   }) async {
     var groupedFieldSet = collectFields(
         document, objectType!, selectionSet, variableValues,
-        parentType: parentType);
+        parents: [if (parentType != null) parentType]);
+
+    // if (objectType case GraphQLStringPairType type) {
+    //   return type.serialize(objectValue);
+    // }
+
     var resultMap = <String, dynamic>{};
 
     for (var responseKey in groupedFieldSet.keys) {
@@ -439,27 +473,38 @@ class GraphQL {
         }
       }
 
-      final objFields = groupedFieldSet[responseKey] ?? {};
+      final objFields = groupedFieldSet[responseKey]!;
 
-      for (final subType in objFields.keys) {
-        final fields = objFields[subType] ?? [];
+      final fields = objFields.item2;
 
-        for (var field in fields) {
-          var fieldName =
-              field.field?.fieldName.alias?.name ?? field.field?.fieldName.name;
-          FutureOr futureResponseValue;
+      for (var field in fields) {
+        var fieldName =
+            field.field?.fieldName.alias?.name ?? field.field?.fieldName.name;
+        dynamic futureResponseValue;
 
-          if (fieldName == '__typename') {
-            futureResponseValue = objectType.name;
-          } else {
-            final fieldType = subType.fields
-                .firstWhereOrNull((f) => f.name == fieldName)
-                ?.type;
+        if (fieldName == '__typename') {
+          futureResponseValue = objectType.name;
+        } else {
+          late GraphQLObjectType subType;
+          GraphQLType? fieldType;
 
-            if (fieldType == null) {
-              continue;
+          for (final type in objFields.item1) {
+            fieldType =
+                type.fields.firstWhereOrNull((f) => f.name == fieldName)?.type;
+
+            if (fieldType != null) {
+              subType = type;
+              break;
             }
+          }
 
+          if (fieldType == null) {
+            continue;
+          }
+
+          if (fieldType case GraphQLStringPairType type) {
+            futureResponseValue = type.deserialize(objectValue);
+          } else {
             futureResponseValue = await executeField(
                 document,
                 fieldName,
@@ -472,13 +517,17 @@ class GraphQL {
                 globalVariables,
                 lazy: nextLazy.toList());
           }
+        }
 
-          final val = resultMap[responseKey] = futureResponseValue;
+        final val = futureResponseValue;
 
-          for (final lz in doneLazy) {
-            if (lz.first as String == responseKey) {
-              (lz.last as JsonPathArgument).complete(val);
-            }
+        if (val != null) {
+          resultMap[responseKey] = val;
+        }
+
+        for (final lz in doneLazy) {
+          if (lz.first as String == responseKey) {
+            (lz.last as JsonPathArgument).complete(val);
           }
         }
       }
@@ -530,7 +579,7 @@ class GraphQL {
       var argumentValue =
           argumentValues?.firstWhereOrNull((a) => a.name == argumentName);
 
-      if (argumentValue == null) {
+      if (argumentValue == null || argumentValue.value is NullValueContext) {
         if (defaultValue != null || argumentDefinition.defaultsToNull) {
           coercedValues[argumentName] = defaultValue;
         } else if (argumentType is GraphQLNonNullableType) {
@@ -543,13 +592,22 @@ class GraphQL {
         var inputValue = argumentValue.value
             .computeValue(variableValues as Map<String, dynamic>);
 
+        if (argumentType case GraphQLNonNullableType type) {
+          if (type.ofType case GraphQLObjectType type when inputValue != null) {
+            argumentType = GraphQLNonNullableType(
+                type.findBetterType(argumentName, inputValue));
+          }
+        } else if (argumentType case GraphQLObjectType type) {
+          argumentType = type.findBetterType(argumentName, inputValue);
+        }
+
         try {
           final validation = argumentType.validate(argumentName, inputValue);
 
           if (!validation.successful) {
             var errors = <GraphQLExceptionError>[
               GraphQLExceptionError(
-                'Type coercion error for value of argument "$argumentName" of field "$fieldName". ($inputValue)',
+                '1Type coercion error for value of argument "$argumentName" of field "$fieldName". ($inputValue)\n-----> Are you selecting the "data {id}"?\n$argumentType',
                 locations: [
                   GraphExceptionErrorLocation.fromSourceLocation(
                       argumentValue.value.span!.start)
@@ -587,7 +645,7 @@ class GraphQL {
 
           throw GraphQLException(<GraphQLExceptionError>[
             GraphQLExceptionError(
-              'Type coercion error for value of argument "$argumentName" of field "$fieldName". [$inputValue]',
+              'Type coercion error for value of argument "$argumentName" of field "$fieldName". \n[$inputValue]',
               locations: locations,
             ),
             GraphQLExceptionError(
@@ -602,13 +660,13 @@ class GraphQL {
     return coercedValues;
   }
 
-  Future<T?> resolveFieldValue<T>(GraphQLObjectType objectType, T objectValue,
+  Future resolveFieldValue(GraphQLObjectType objectType, dynamic objectValue,
       String? fieldName, Map<String, dynamic> argumentValues) async {
     final field = objectType.fields.firstWhere((f) => f.name == fieldName);
     final fieldResolve = field.resolve;
 
-    if (objectValue is Map) {
-      return objectValue[fieldName] as T;
+    if (objectValue case Map objectValue) {
+      return objectValue[fieldName];
     } else if (fieldResolve == null) {
       if (defaultFieldResolver != null) {
         return await defaultFieldResolver!(
@@ -616,7 +674,7 @@ class GraphQL {
       }
       return null;
     } else {
-      return await fieldResolve(objectValue, argumentValues) as T?;
+      return await fieldResolve(objectValue, argumentValues);
     }
   }
 
@@ -679,6 +737,12 @@ class GraphQL {
       }
     }
 
+    if (fieldType is GraphQLFixedType) {
+      final ret = fieldType.serialize(result);
+
+      return ret;
+    }
+
     if (fieldType is GraphQLObjectType || fieldType is GraphQLUnionType) {
       GraphQLObjectType objectType;
 
@@ -705,6 +769,14 @@ class GraphQL {
     if (type is GraphQLObjectType) {
       if (type.isInterface) {
         possibleTypes = type.possibleTypes;
+
+        if (type.findTypeFromResult case final find?) {
+          final found = find(result as Map<String, dynamic>);
+
+          if (found != null) {
+            return found;
+          }
+        }
       } else {
         return type;
       }
@@ -714,20 +786,27 @@ class GraphQL {
       throw ArgumentError();
     }
 
+    if (result case {'__type': GraphQLObjectType type}) {
+      return type;
+    }
+
     final errors = <GraphQLExceptionError>[];
     final types = [];
 
     for (var t in possibleTypes) {
       try {
+        //print('TRYING $t');
         var validation =
             t.validate(fieldName!, foldToStringDynamic(result as Map?));
 
         if (validation.successful) {
           types.add(t);
         } else {
+          //print('errors ${validation.errors}');
           errors.addAll(validation.errors.map((m) => GraphQLExceptionError(m)));
         }
       } on GraphQLException catch (e) {
+        //print('FOO $e');
         errors.addAll(e.errors);
       }
     }
@@ -765,15 +844,16 @@ class GraphQL {
     return SelectionSetContext.merged(selections);
   }
 
-  Map<String?, Map<GraphQLObjectType, List<SelectionContext>>> collectFields(
-      DocumentContext document,
-      GraphQLObjectType objectType,
-      SelectionSetContext selectionSet,
-      Map<String?, dynamic> variableValues,
-      {List? visitedFragments,
-      GraphQLObjectType? parentType}) {
+  Map<String?, Tuple2<Set<GraphQLObjectType>, List<SelectionContext>>>
+      collectFields(
+          DocumentContext document,
+          GraphQLObjectType objectType,
+          SelectionSetContext selectionSet,
+          Map<String?, dynamic> variableValues,
+          {List? visitedFragments,
+          Iterable<GraphQLObjectType> parents = const []}) {
     final groupedFields =
-        <String?, Map<GraphQLObjectType, List<SelectionContext>>>{};
+        <String?, Tuple2<Set<GraphQLObjectType>, List<SelectionContext>>>{};
     visitedFragments ??= [];
 
     for (var selection in selectionSet.selections) {
@@ -790,13 +870,16 @@ class GraphQL {
 
         var responseKey = selection.field!.fieldName.alias?.alias ??
             selection.field!.fieldName.name;
-        var groupForResponseKey =
-            groupedFields.putIfAbsent(responseKey, () => {objectType: []});
-        groupForResponseKey[objectType]!.add(selection);
+        var groupForResponseKey = groupedFields.putIfAbsent(
+            responseKey, () => Tuple2({objectType}, []));
+        groupForResponseKey.item2.add(selection);
       } else if (selection.fragmentSpread != null) {
         var fragmentSpreadName = selection.fragmentSpread!.name;
+
         if (visitedFragments.contains(fragmentSpreadName)) continue;
+
         visitedFragments.add(fragmentSpreadName);
+
         var fragment = document.definitions
             .whereType<FragmentDefinitionContext>()
             .firstWhereOrNull((f) => f.name == fragmentSpreadName);
@@ -804,35 +887,46 @@ class GraphQL {
         if (fragment == null) continue;
         var fragmentType = fragment.typeCondition;
         final subType = doesFragmentTypeApply(objectType, fragmentType,
-            parentType: parentType);
+            parents: parents.isEmpty ? [objectType] : parents);
         if (subType == null) continue;
         var fragmentSelectionSet = fragment.selectionSet;
         var fragmentGroupFieldSet = collectFields(
-            document, subType, fragmentSelectionSet, variableValues);
+            document, subType, fragmentSelectionSet, variableValues,
+            parents: [
+              ...(parents.isEmpty ? [objectType] : parents),
+              subType
+            ]);
 
         for (var responseKey in fragmentGroupFieldSet.keys) {
           var fragmentGroup = fragmentGroupFieldSet[responseKey]!;
-          var groupForResponseKey = (groupedFields[responseKey] ??= {});
+          var groupForResponseKey =
+              (groupedFields[responseKey] ??= Tuple2({}, []));
 
-          fragmentGroup.values
-              .forEach((groupForResponseKey[subType] ??= []).addAll);
+          groupForResponseKey.item1.addAll([subType, ...fragmentGroup.item1]);
+          fragmentGroup.item2.forEach(groupForResponseKey.item2.add);
         }
       } else if (selection.inlineFragment != null) {
         var fragmentType = selection.inlineFragment!.typeCondition;
         final subType = doesFragmentTypeApply(objectType, fragmentType,
-            parentType: parentType);
+            parents: parents.isEmpty ? [objectType] : parents);
 
         if (subType == null) continue;
+
         var fragmentSelectionSet = selection.inlineFragment!.selectionSet;
         var fragmentGroupFieldSet = collectFields(
-            document, subType, fragmentSelectionSet, variableValues);
+            document, subType, fragmentSelectionSet, variableValues,
+            parents: [
+              ...(parents.isEmpty ? [objectType] : parents),
+              subType
+            ]);
 
         for (var responseKey in fragmentGroupFieldSet.keys) {
           var fragmentGroup = fragmentGroupFieldSet[responseKey]!;
-          var groupForResponseKey = (groupedFields[responseKey] ??= {});
+          var groupForResponseKey =
+              (groupedFields[responseKey] ??= Tuple2({}, []));
 
-          fragmentGroup.values
-              .forEach((groupForResponseKey[subType] ??= []).addAll);
+          groupForResponseKey.item1.addAll([subType, ...fragmentGroup.item1]);
+          fragmentGroup.item2.forEach(groupForResponseKey.item2.add);
         }
       }
     }
@@ -871,18 +965,19 @@ class GraphQL {
 
   GraphQLObjectType? doesFragmentTypeApply(
       GraphQLObjectType? objectType, TypeConditionContext fragmentType,
-      {GraphQLObjectType? parentType}) {
+      {Iterable<GraphQLObjectType> parents = const []}) {
     var type = convertType(TypeContext(fragmentType.typeName, null),
-        usePolymorphicName: true, parent: parentType ?? objectType);
+        usePolymorphicName: true, parents: parents);
 
-    if ((type is GraphQLObjectType &&
-            type.isInterface &&
-            objectType!.isImplementationOf(type)) ||
+    if (type is! GraphQLObjectType ||
+        (type.isInterface &&
+            _collectTypes.isImplementationOf(type, objectType!)) ||
         (type is GraphQLUnionType &&
-            type.possibleTypes.any((t) => objectType!.isImplementationOf(t)))) {
+            type.possibleTypes.any(
+                (t) => _collectTypes.isImplementationOf(t, objectType!)))) {
       return null;
     }
 
-    return type as GraphQLObjectType?;
+    return type;
   }
 }

@@ -192,11 +192,11 @@ GraphQLObjectType? objectTypeFromClassMirror(ClassMirror mirror) {
   var result = _cache[mirror.reflectedType];
 
   if (result == null) {
-    result = objectType(
+    result = GraphQLDynamicObjectType(
       MirrorSystem.getName(mirror.simpleName),
       fields: fields,
       isInterface: mirror.isAbstract,
-      interfaces: inheritsFrom,
+      //interfaces: inheritsFrom,
       description: _getDescription(mirror.metadata),
     );
     _cache[mirror.reflectedType] = result;
@@ -253,7 +253,7 @@ GraphQLObjectField fieldFromGetter(
     type = graphQLId;
   }
 
-  return field(
+  return GraphQLObjectField(
     nameString,
     type!,
     deprecationReason: _getDeprecationReason(mirror.metadata),
