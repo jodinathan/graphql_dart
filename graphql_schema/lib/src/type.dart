@@ -15,6 +15,12 @@ abstract class GraphQLType<Value, Serialized> implements GraphQLBaseType {
   /// A description of this type, which, while optional, can be very useful in tools like GraphiQL.
   String? get description;
 
+  /// Optional lazy localizable description (i18n) — see [GraphQLBaseType.descriptionThunk].
+  /// Concrete default `null`; subclasses that carry a model description (object
+  /// types, input object types, enum types) override it with a `const` tear-off.
+  @override
+  String Function()? get descriptionThunk => null;
+
   /// Serializes an arbitrary input value.
   Serialized serialize(Value value);
 

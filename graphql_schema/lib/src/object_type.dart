@@ -97,7 +97,8 @@ class GraphQLDynamicObjectType
   @override
   GraphQLType<Map<String, dynamic>, Map<String, dynamic>>
       coerceToInputObject() {
-    return toInputObject('${name}Input', description: description);
+    return toInputObject('${name}Input',
+        description: description, descriptionThunk: descriptionThunk);
   }
 
   @override
@@ -139,6 +140,10 @@ abstract class GraphQLObjectType<T, V> extends GraphQLType<T, Map<String, V>>
   @override
   final String? description;
 
+  /// Optional lazy localizable description (i18n) — see [GraphQLBaseType.descriptionThunk].
+  @override
+  final String Function()? descriptionThunk;
+
   /// The list of fields that an object of this type is expected to have.
   List<GraphQLObjectField> get fields;
 
@@ -155,6 +160,7 @@ abstract class GraphQLObjectType<T, V> extends GraphQLType<T, Map<String, V>>
 
   const GraphQLObjectType(this.name,
       {this.description,
+      this.descriptionThunk,
       this.isInterface = false,
       this.polymorphicName,
       this.possibleTypes = const [],
@@ -162,12 +168,14 @@ abstract class GraphQLObjectType<T, V> extends GraphQLType<T, Map<String, V>>
 
   /// Converts [this] into a [GraphQLInputObjectType].
   GraphQLInputDynamicObjectType toInputObject(String name,
-      {String? description}) {
+      {String? description, String Function()? descriptionThunk}) {
     return GraphQLInputDynamicObjectType(name,
         description: description ?? this.description,
+        descriptionThunk: descriptionThunk ?? this.descriptionThunk,
         inputFields: fields.map((f) => GraphQLInputObjectField(
             f.name, f.type.coerceToInputObject(),
-            description: f.description)));
+            description: f.description,
+            descriptionThunk: f.descriptionThunk)));
   }
 
   /// Declares that this type inherits from another parent type.
@@ -310,7 +318,7 @@ class GraphQLDirectiveType extends GraphQLInputDynamicObjectType {
 class GraphQLInputDynamicObjectType
     extends GraphQLInputObjectType<Map<String, dynamic>, dynamic> {
   const GraphQLInputDynamicObjectType(super.name,
-      {super.description, this.inputFields = const []});
+      {super.description, super.descriptionThunk, this.inputFields = const []});
 
   @override
   final Iterable<GraphQLInputObjectField> inputFields;
@@ -361,10 +369,15 @@ abstract class GraphQLInputObjectType<T, V>
   @override
   final String? description;
 
+  /// Optional lazy localizable description (i18n) — see [GraphQLBaseType.descriptionThunk].
+  @override
+  final String Function()? descriptionThunk;
+
   /// A list of the fields that an input object of this type is expected to have.
   Iterable<GraphQLInputObjectField> get inputFields;
 
-  const GraphQLInputObjectType(this.name, {this.description});
+  const GraphQLInputObjectType(this.name,
+      {this.description, this.descriptionThunk});
 
   @override
   ValidationResult validate(String key, Map input) {
@@ -431,6 +444,10 @@ class GraphQLInputObjectField<Value, Serialized> implements GraphQLBaseType {
   /// A description of this field, which is useful for tools like GraphiQL.
   final String? description;
 
+  /// Optional lazy localizable description (i18n) — see [GraphQLBaseType.descriptionThunk].
+  @override
+  final String Function()? descriptionThunk;
+
   /// An optional default value for this field in an input object.
   final Value? defaultValue;
 
@@ -438,7 +455,10 @@ class GraphQLInputObjectField<Value, Serialized> implements GraphQLBaseType {
   final bool defaultsToNull;
 
   const GraphQLInputObjectField(this.name, this.type,
-      {this.description, this.defaultValue, this.defaultsToNull = false});
+      {this.description,
+      this.descriptionThunk,
+      this.defaultValue,
+      this.defaultsToNull = false});
 
   @override
   bool operator ==(other) =>

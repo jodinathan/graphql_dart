@@ -42,7 +42,12 @@ class GraphQLEnumType<Value> extends GraphQLScalarType<Value, String>
   @override
   final String? description;
 
-  const GraphQLEnumType(this.name, this.values, {this.description});
+  /// Optional lazy localizable description (i18n) — see [GraphQLBaseType.descriptionThunk].
+  @override
+  final String Function()? descriptionThunk;
+
+  const GraphQLEnumType(this.name, this.values,
+      {this.description, this.descriptionThunk});
 
   @override
   String serialize(dynamic value) => switch (value) {
@@ -109,11 +114,15 @@ class GraphQLEnumValue<Value> implements GraphQLBaseType {
   /// An optional description of this value; useful for tools like GraphiQL.
   final String? description;
 
+  /// Optional lazy localizable description (i18n) — see [GraphQLBaseType.descriptionThunk].
+  @override
+  final String Function()? descriptionThunk;
+
   /// The reason, if any, that this value was deprecated, if it indeed is deprecated.
   final String? deprecationReason;
 
   const GraphQLEnumValue(this.name, this.value,
-      {this.description, this.deprecationReason});
+      {this.description, this.descriptionThunk, this.deprecationReason});
 
   /// Returns `true` if this value has a [deprecationReason].
   bool get isDeprecated => deprecationReason != null;

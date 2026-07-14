@@ -28,7 +28,10 @@ GraphQLObjectType _createTypeType() {
     GraphQLObjectField(
       'description',
       graphQLString,
-      resolve: (type, _) => (type as GraphQLBaseType).description,
+      resolve: (type, _) {
+        final t = type as GraphQLBaseType;
+        return t.description ?? t.descriptionThunk?.call();
+      },
     ),
     GraphQLObjectField(
       'kind',
@@ -126,7 +129,10 @@ GraphQLObjectType _createFieldType() {
     GraphQLObjectField(
       'description',
       graphQLString,
-      resolve: (f, _) => (f as GraphQLObjectField).description ?? '',
+      resolve: (f, _) {
+        final o = f as GraphQLObjectField;
+        return o.description ?? o.descriptionThunk?.call() ?? '';
+      },
     ),
     GraphQLObjectField(
       'isDeprecated',
@@ -181,7 +187,9 @@ GraphQLObjectType _reflectInputValueType() {
       'description',
       graphQLString,
       resolve: (obj, _) => _fetchFromInputValue(
-          obj, (f) => f.description ?? '', (f) => f.description ?? '')!,
+          obj,
+          (f) => f.description ?? f.descriptionThunk?.call() ?? '',
+          (f) => f.description ?? f.descriptionThunk?.call() ?? '')!,
     ),
     GraphQLObjectField(
       'defaultValue',
@@ -212,7 +220,10 @@ GraphQLObjectType _reflectDirectiveType() {
     GraphQLObjectField(
       'description',
       graphQLString,
-      resolve: (obj, _) => (obj as GraphQLDirectiveType).description ?? '',
+      resolve: (obj, _) {
+        final d = obj as GraphQLDirectiveType;
+        return d.description ?? d.descriptionThunk?.call() ?? '';
+      },
     ),
     GraphQLObjectField(
       'locations',
@@ -244,7 +255,10 @@ GraphQLObjectType _reflectEnumValueType() {
       GraphQLObjectField(
         'description',
         graphQLString,
-        resolve: (obj, _) => (obj as GraphQLEnumValue).description ?? '',
+        resolve: (obj, _) {
+          final v = obj as GraphQLEnumValue;
+          return v.description ?? v.descriptionThunk?.call() ?? '';
+        },
       ),
       GraphQLObjectField(
         'isDeprecated',

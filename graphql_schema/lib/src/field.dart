@@ -11,6 +11,13 @@ abstract interface class GraphQLBaseType {
 
   String? get name;
   String? get description;
+
+  /// Optional lazy localizable description (i18n). Unlike [description] (a
+  /// build-time constant baked into the `const` schema), this thunk is resolved
+  /// PER QUERY by the introspection resolvers, inside the request's
+  /// `Intl.withLocale` zone. Default `null`; storage classes override it with a
+  /// `const`-assignable tear-off of a public top-level/static forwarder.
+  String Function()? get descriptionThunk => null;
 }
 
 /// A field on a [GraphQLObjectType].
@@ -33,6 +40,10 @@ class GraphQLObjectField<Value, Serialized> implements GraphQLBaseType {
   /// An optional description of this field; useful for tools like GraphiQL.
   final String? description;
 
+  /// Optional lazy localizable description (i18n) — see [GraphQLBaseType.descriptionThunk].
+  @override
+  final String Function()? descriptionThunk;
+
   /// The reason that this field, if it is deprecated, was deprecated.
   final String? deprecationReason;
 
@@ -40,7 +51,8 @@ class GraphQLObjectField<Value, Serialized> implements GraphQLBaseType {
       {this.inputs = const <GraphQLFieldInput>[],
       this.resolve,
       this.deprecationReason,
-      this.description});
+      this.description,
+      this.descriptionThunk});
 
   /// Returns `true` if this field has a [deprecationReason].
   bool get isDeprecated => deprecationReason?.isNotEmpty == true;
@@ -72,5 +84,6 @@ class GraphQLObjectField<Value, Serialized> implements GraphQLBaseType {
           inputs: inputs,
           resolve: resolve,
           description: description,
+          descriptionThunk: descriptionThunk,
           deprecationReason: deprecationReason);
 }
