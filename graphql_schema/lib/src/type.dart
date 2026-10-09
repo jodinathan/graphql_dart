@@ -190,7 +190,7 @@ class GraphQLNonNullableType<OfType extends GraphQLType<Value, Serialized>,
   }
 
   @override
-  ValidationResult validate(String key, Serialized input) {
+  ValidationResult validate(String key, dynamic input) {
     if (input == null) {
       return ValidationResult._failure(
           ['Expected "$key" to be a non-null value.']);
@@ -199,8 +199,8 @@ class GraphQLNonNullableType<OfType extends GraphQLType<Value, Serialized>,
   }
 
   @override
-  Value deserialize(Serialized serialized) {
-    return ofType.deserialize(serialized);
+  Value deserialize(covariant dynamic serialized) {
+    return ofType.deserialize(ofType.convert(serialized) as Serialized);
   }
 
   @override
