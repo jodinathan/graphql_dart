@@ -1,7 +1,6 @@
 part of graphql_schema.src.schema;
 
 /// Represents the result of asserting an input [value] against a [GraphQLType].
-
 class ValidationResult<Value> {
   /// `true` if there were no errors during validation.
   final bool successful;
@@ -12,8 +11,6 @@ class ValidationResult<Value> {
   /// A list of errors that caused validation to fail.
   final List<String> errors;
 
-  ValidationResult._(this.successful, this.value, this.errors);
-
   ValidationResult._ok(this.value)
       : errors = [],
         successful = true;
@@ -21,8 +18,4 @@ class ValidationResult<Value> {
   ValidationResult._failure(this.errors)
       : value = null,
         successful = false;
-
-//  ValidationResult<T> _asFailure() {
-//    return new ValidationResult<T>._(false, value, errors);
-//  }
 }

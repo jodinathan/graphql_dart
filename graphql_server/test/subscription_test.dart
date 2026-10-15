@@ -19,17 +19,19 @@ void main() {
       Stream.fromIterable(episodes)
           .map((ep) => {'prequels': ep, 'not_selected': 1337});
 
-  var episodeType = objectType('Episode', fields: [
-    field('name', graphQLString.nonNullable()),
-    field('not_selected', graphQLInt),
+  var episodeType = GraphQLDynamicObjectType('Episode', fields: [
+    GraphQLObjectField('name', graphQLString.nonNullable()),
+    GraphQLObjectField('not_selected', graphQLInt),
   ]);
 
   var schema = graphQLSchema(
-    queryType: objectType('TestQuery', fields: [
-      field('episodes', graphQLInt, resolve: (_, __) => episodes),
+    queryType: GraphQLDynamicObjectType('TestQuery', fields: [
+      GraphQLObjectField('episodes', graphQLInt,
+          resolve: (_, __) => episodes.length),
     ]),
-    subscriptionType: objectType('TestSubscription', fields: [
-      field('prequels', episodeType, resolve: resolveEpisodes),
+    subscriptionType: GraphQLDynamicObjectType('TestSubscription', fields: [
+      GraphQLObjectField<dynamic, dynamic>('prequels', episodeType,
+          resolve: resolveEpisodes),
     ]),
   );
 
@@ -45,7 +47,6 @@ void main() {
     ''') as Stream<Map<String, dynamic>>;
 
     var asList = await stream.toList();
-    print(asList);
     expect(asList, episodesAsData);
   });
 }

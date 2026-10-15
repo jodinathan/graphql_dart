@@ -3,7 +3,8 @@ part of graphql_schema.src.schema;
 const graphQLDuration = GraphQLDurationType('Duration');
 
 class GraphQLDurationType extends GraphQLObjectType<Duration, int> {
-  const GraphQLDurationType(super.name, {
+  const GraphQLDurationType(
+    super.name, {
     super.description,
     super.isInterface = false,
     super.polymorphicName,
@@ -44,7 +45,8 @@ class GraphQLDurationType extends GraphQLObjectType<Duration, int> {
 }
 
 class GraphQLDurationInputType extends GraphQLInputObjectType<Duration, int> {
-  const GraphQLDurationInputType(super.name, {
+  const GraphQLDurationInputType(
+    super.name, {
     super.description,
   });
 
@@ -81,4 +83,4 @@ class GraphQLDurationInputType extends GraphQLInputObjectType<Duration, int> {
       microseconds: serialized['microseconds'] ?? 0,
     );
   }
-} 
+}

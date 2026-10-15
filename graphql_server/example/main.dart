@@ -4,22 +4,22 @@ import 'package:test/test.dart';
 
 void main() {
   test('single element', () async {
-    var todoType = objectType('todo', fields: [
-      field(
+    var todoType = GraphQLDynamicObjectType('todo', fields: [
+      GraphQLObjectField(
         'text',
         graphQLString,
-        resolve: (obj, args) => obj.text,
+        resolve: (Object? obj, args) => (obj as Todo).text,
       ),
-      field(
+      GraphQLObjectField(
         'completed',
         graphQLBoolean,
-        resolve: (obj, args) => obj.completed,
+        resolve: (Object? obj, args) => (obj as Todo).completed,
       ),
     ]);
 
     var schema = graphQLSchema(
-      queryType: objectType('api', fields: [
-        field(
+      queryType: GraphQLDynamicObjectType('api', fields: [
+        GraphQLObjectField<dynamic, dynamic>(
           'todos',
           listOf(todoType),
           resolve: (_, __) => [

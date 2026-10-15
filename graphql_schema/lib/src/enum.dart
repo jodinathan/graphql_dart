@@ -51,17 +51,17 @@ class GraphQLEnumType<Value> extends GraphQLScalarType<Value, String>
 
   @override
   String serialize(dynamic value) => switch (value) {
-    String() => value,
-    Value() => values.firstWhere((v) => v.value == value).name,
-    _ => value
-  };
+        String() => value,
+        Value() => values.firstWhere((v) => v.value == value).name,
+        _ => value
+      };
 
   @override
   String? convert(value) => switch (value) {
-    String() => value,
-    Value() => serialize(value),
-    _ => value
-  };
+        String() => value,
+        Value() => serialize(value),
+        _ => value
+      };
 
   @override
   Value deserialize(String serialized) {
@@ -74,10 +74,6 @@ class GraphQLEnumType<Value> extends GraphQLScalarType<Value, String>
       if (input is String && !values.any((v) => v.name == input)) {
         return ValidationResult._failure(
             ['"$input" is not a valid String value for the enum "$name".']);
-        //if (input == null) {
-        //  return new ValidationResult<String>._failure(
-        //      ['The enum "$name" does not accept null values.']);
-        //}
       } else if (input is Enum && !values.any((v) => v.value == input)) {
         return ValidationResult._failure(
             ['"$input" is not a valid item value for the enum "$name".']);

@@ -71,7 +71,8 @@ GraphQLObjectType _createTypeType() {
       resolve: (type, args) {
         if (type is GraphQLObjectType) {
           return type.fields
-              .where((f) => !f.isDeprecated || args['includeDeprecated'] == true)
+              .where(
+                  (f) => !f.isDeprecated || args['includeDeprecated'] == true)
               .toList();
         }
         return null;
@@ -90,7 +91,8 @@ GraphQLObjectType _createTypeType() {
       resolve: (obj, args) {
         if (obj is GraphQLEnumType) {
           return obj.values
-              .where((f) => !f.isDeprecated || args['includeDeprecated'] == true)
+              .where(
+                  (f) => !f.isDeprecated || args['includeDeprecated'] == true)
               .toList();
         }
         return null;

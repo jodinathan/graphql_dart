@@ -405,7 +405,6 @@ class _GraphQLDateType extends GraphQLScalarType<DateTime, String>
       return ValidationResult<String>._failure(
           ['$key must be an ISO 8601-formatted date string.']);
     }
-    // else if (input == null) return ValidationResult<String>._ok(input);
 
     try {
       DateTime.parse(input);
@@ -445,7 +444,6 @@ class _GraphQLStringDateType extends GraphQLScalarType<String, String>
       return ValidationResult<String>._failure(
           ['$key must be an ISO 8601-formatted date string.']);
     }
-    // else if (input == null) return ValidationResult<String>._ok(input);
 
     try {
       DateTime.parse(input);

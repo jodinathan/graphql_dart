@@ -196,7 +196,6 @@ GraphQLObjectType? objectTypeFromClassMirror(ClassMirror mirror) {
       MirrorSystem.getName(mirror.simpleName),
       fields: fields,
       isInterface: mirror.isAbstract,
-      //interfaces: inheritsFrom,
       description: _getDescription(mirror.metadata),
     );
     _cache[mirror.reflectedType] = result;

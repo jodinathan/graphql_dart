@@ -52,7 +52,7 @@ type TodoAdded {
 Your Dart schema's resolver for `onTodo` should be a `Map` *containing an `onTodo` key*:
 
 ```dart
-field(
+GraphQLObjectField(
   'onTodo',
   todoAddedType,
   resolve: (_, __) {

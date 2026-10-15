@@ -87,16 +87,18 @@ class GraphQLListType<OfType extends GraphQLType<Value, Serialized>, Value,
 
   @override
   ValidationResult<List<Serialized>> validate(String key, List input) {
-    if (input is! List) {
-      return ValidationResult._failure(['Expected "$key" to be a list.']);
-    }
-
     var out = <Serialized>[];
     var errors = <String>[];
 
     for (var i = 0; i < input.length; i++) {
       var k = '"$key" at index $i';
       var v = input[i];
+
+      if (v == null && ofType is! GraphQLNonNullableType) {
+        out.add(v);
+        continue;
+      }
+
       var result = ofType.validate(k, v);
       if (!result.successful) {
         errors.addAll(result.errors);
@@ -144,7 +146,8 @@ class GraphQLFixedLengthListType<OfType extends GraphQLType<Value, Serialized>,
     final ret = super.validate(key, input);
 
     if (ret.successful && input.length != length) {
-      return ValidationResult._failure(['Expected "$key" to be a list of length $length.']);
+      return ValidationResult._failure(
+          ['Expected "$key" to be a list of length $length.']);
     }
 
     return ret;
@@ -159,8 +162,8 @@ mixin _NonNullableMixin<Value, Serialized>
           this);
 }
 
-mixin GraphQLDelegatedType<
-    OfType extends GraphQLType<Value, Serialized>, Value, Serialized> {
+mixin GraphQLDelegatedType<OfType extends GraphQLType<Value, Serialized>, Value,
+    Serialized> {
   OfType get ofType;
 }
 
@@ -178,7 +181,7 @@ class GraphQLNonNullableType<OfType extends GraphQLType<Value, Serialized>,
   const GraphQLNonNullableType(this.ofType);
 
   @override
-  String? get name => null; //innerType.name;
+  String? get name => null;
 
   @override
   String get description =>

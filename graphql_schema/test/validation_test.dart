@@ -8,12 +8,12 @@ void main() {
     'GRASS',
   ]);
 
-  var pokemonType = objectType('Pokémon', fields: [
-    field(
+  var pokemonType = GraphQLDynamicObjectType('Pokémon', fields: [
+    GraphQLObjectField(
       'name',
       graphQLString.nonNullable(),
     ),
-    field(
+    GraphQLObjectField(
       'type',
       typeType,
     ),
@@ -39,11 +39,9 @@ void main() {
     expect(<String, dynamic>{}, isNot(isValidPokemon));
   });
 
-  /* TODO: Required fixing
   test('null passed for non-nullable', () {
     expect({'name': null}, isNot(isValidPokemon));
   });
-  */
 
   test('rejects extraneous fields', () {
     expect({'name': 'Vulpix', 'foo': 'bar'}, isNot(isValidPokemon));
@@ -58,10 +56,10 @@ void main() {
   });
 
   group('union type', () {
-    var digimonType = objectType(
+    var digimonType = GraphQLDynamicObjectType(
       'Digimon',
       fields: [
-        field('size', graphQLFloat.nonNullable()),
+        GraphQLObjectField('size', graphQLFloat.nonNullable()),
       ],
     );
 
@@ -99,6 +97,55 @@ void main() {
           type.validate(
               '@root', {'bar': 'a', 'baz': 2.0, 'franken': 'stein'}).successful,
           false);
+    });
+  });
+
+  group('null in nullable positions', () {
+    var item = inputObjectType(
+      'Item',
+      inputFields: [inputField('name', graphQLString.nonNullable())],
+    );
+
+    test('a nullable list item may be null', () {
+      var result = GraphQLListType(graphQLString).validate('xs', ['a', null]);
+      expect(result.successful, true);
+      expect(result.value, ['a', null]);
+    });
+
+    test('a nullable input object item may be null', () {
+      var result = GraphQLListType(item).validate('items', [
+        {'name': 'a'},
+        null,
+      ]);
+      expect(result.successful, true);
+    });
+
+    test('a non-null list item may not be null', () {
+      var result = GraphQLListType(graphQLString.nonNullable())
+          .validate('xs', ['a', null]);
+      expect(result.successful, false);
+    });
+
+    test('a non-null input object item may not be null', () {
+      var result =
+          GraphQLListType(item.nonNullable()).validate('items', [null]);
+      expect(result.successful, false);
+    });
+
+    test('a nullable list field of an object may be null', () {
+      var type = GraphQLDynamicObjectType('Bag', fields: [
+        GraphQLObjectField('xs', GraphQLListType(graphQLString)),
+      ]);
+      var result = type.validate('@root', {'xs': null});
+      expect(result.successful, true);
+      expect(result.value, {'xs': null});
+    });
+
+    test('a non-null field of an object may not be null', () {
+      var type = GraphQLDynamicObjectType('Bag', fields: [
+        GraphQLObjectField('xs', GraphQLListType(graphQLString).nonNullable()),
+      ]);
+      expect(type.validate('@root', {'xs': null}).successful, false);
     });
   });
 }

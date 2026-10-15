@@ -26,11 +26,12 @@ Of course, for a full description of GraphQL's type system, see the official [Gr
 It's easy to define a schema with the [helper functions](#helpers):
 
 ```dart
-final GraphQLSchema todoSchema = GraphQLSchema(
-    query: objectType('Todo', [
-  field('text', graphQLString.nonNullable()),
-  field('created_at', graphQLDate)
-]));
+final GraphQLSchema todoSchema = graphQLSchema(
+  queryType: GraphQLDynamicObjectType('Todo', fields: [
+    GraphQLObjectField('text', graphQLString.nonNullable()),
+    GraphQLObjectField('created_at', graphQLDate),
+  ]),
+);
 ```
 
 All GraphQL types are generic, in order to leverage Dart's strong typing support.
@@ -62,11 +63,13 @@ if (validation.successful) {
 ## Helpers
 
 * `graphQLSchema` - Create a `GraphQLSchema`
-* `objectType` - Create a `GraphQLObjectType` with fields
-* `field` - Create a `GraphQLField` with a type/argument/resolver
 * `listOf` - Create a `GraphQLListType` with the provided `innerType`
 * `inputObjectType` - Creates a `GraphQLInputObjectType`
 * `inputField` - Creates a field for a `GraphQLInputObjectType`
+
+Object types and their fields are declared with constructors:
+`GraphQLDynamicObjectType(name, fields: [...])` and
+`GraphQLObjectField(name, type, inputs: [...], resolve: ...)`.
 
 ## Types
 
@@ -85,7 +88,7 @@ You can easily make a type non-nullable by calling its `nonNullable` method.
 
 ## List Types
 
-Support for list types is also included. Use the `listType` helper for convenience.
+Support for list types is also included. Use the `listOf` helper for convenience.
 
 ```dart
 /// A non-nullable list of non-nullable integers
@@ -123,18 +126,17 @@ type Character {
 The field `characters` accepts a parameter, `title`. To reproduce this in `package:graphql_schema2`, use `GraphQLFieldInput`:
 
 ```dart
-final GraphQLObjectType queryType = objectType('AnimeQuery', fields: [
-  field('characters',
-    listOf(characterType.nonNullable()),
-    inputs: [
-      new GraphQLFieldInput('title', graphQLString.nonNullable())
-    ]
-  ),
+final characterType = GraphQLDynamicObjectType('Character', fields: [
+  GraphQLObjectField('name', graphQLString),
+  GraphQLObjectField('age', graphQLInt),
 ]);
 
-final GraphQLObjectType characterType = objectType('Character', fields: [
-  field('name', graphQLString),
-  field('age', graphQLInt),
+final queryType = GraphQLDynamicObjectType('AnimeQuery', fields: [
+  GraphQLObjectField(
+    'characters',
+    listOf(characterType.nonNullable()),
+    inputs: [GraphQLFieldInput('title', graphQLString.nonNullable())],
+  ),
 ]);
 ```
 
@@ -145,7 +147,7 @@ In the majority of cases where you use GraphQL, you will be delegate the actual 
 A hypothetical example of the above might be:
 
 ```dart
-var field = field(
+final charactersField = GraphQLObjectField(
   'characters',
   graphQLString,
   resolve: (_, args) async {

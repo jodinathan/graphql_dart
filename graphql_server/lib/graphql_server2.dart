@@ -446,10 +446,6 @@ class GraphQL {
         document, objectType!, selectionSet, variableValues,
         parents: [if (parentType != null) parentType]);
 
-    // if (objectType case GraphQLStringPairType type) {
-    //   return type.serialize(objectValue);
-    // }
-
     var resultMap = <String, dynamic>{};
 
     for (var responseKey in groupedFieldSet.keys) {
@@ -502,21 +498,17 @@ class GraphQL {
             continue;
           }
 
-          if (fieldType case GraphQLStringPairType type) {
-            futureResponseValue = type.deserialize(objectValue);
-          } else {
-            futureResponseValue = await executeField(
-                document,
-                fieldName,
-                subType,
-                objectValue,
-                fields,
-                fieldType,
-                Map<String, dynamic>.from(globalVariables)
-                  ..addAll(variableValues),
-                globalVariables,
-                lazy: nextLazy.toList());
-          }
+          futureResponseValue = await executeField(
+              document,
+              fieldName,
+              subType,
+              objectValue,
+              fields,
+              fieldType,
+              Map<String, dynamic>.from(globalVariables)
+                ..addAll(variableValues),
+              globalVariables,
+              lazy: nextLazy.toList());
         }
 
         final val = futureResponseValue;
@@ -752,8 +744,13 @@ class GraphQL {
         objectType = resolveAbstractType(fieldName, fieldType, result);
       }
 
-      //objectType = fieldType as GraphQLObjectType;
       var subSelectionSet = mergeSelectionSets(fields);
+
+      if (subSelectionSet.selections.isEmpty) {
+        throw GraphQLException.fromMessage(
+            'Field "$fieldName" of type "${objectType.name}" must have a selection of subfields.');
+      }
+
       return await executeSelectionSet(document, subSelectionSet, objectType,
           result, variableValues, globalVariables,
           lazy: lazy, parentType: fieldType as GraphQLObjectType);

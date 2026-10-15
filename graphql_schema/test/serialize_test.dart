@@ -26,8 +26,9 @@ void main() {
   });
 
   test('enum only serializes correct values', () {
-    var response = enumTypeFromStrings('Response', ['YES', 'NO']);
-    expect(() => response.serialize('MAYBE'), throwsStateError);
+    var response = enumType('Response', {'YES': Answer.yes, 'NO': Answer.no});
+    expect(response.serialize(Answer.yes), 'YES');
+    expect(() => response.serialize(Answer.maybe), throwsStateError);
   });
 
   test('date', () {
@@ -75,21 +76,21 @@ void main() {
       'GRASS',
     ]);
 
-    var pokemonType = objectType('Pokémon', fields: [
-      field(
+    var pokemonType = GraphQLDynamicObjectType('Pokémon', fields: [
+      GraphQLObjectField(
         'name',
         graphQLString.nonNullable(),
       ),
-      field(
+      GraphQLObjectField(
         'type',
         typeType,
       ),
     ]);
 
-    var digimonType = objectType(
+    var digimonType = GraphQLDynamicObjectType(
       'Digimon',
       fields: [
-        field('size', graphQLFloat.nonNullable()),
+        GraphQLObjectField('size', graphQLFloat.nonNullable()),
       ],
     );
 
@@ -131,3 +132,5 @@ void main() {
         throwsUnsupportedError);
   });
 }
+
+enum Answer { yes, no, maybe }

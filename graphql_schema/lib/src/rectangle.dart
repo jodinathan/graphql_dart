@@ -4,8 +4,8 @@ const graphQLFloatRectangle = GraphQLMapRectangleObjectType<double>(
     'FloatRectangle',
     axisType: GraphQLFloatType());
 
-const graphQLIntRectangle =
-    GraphQLMapRectangleObjectType<int>('IntRectangle', axisType: GraphQLIntType());
+const graphQLIntRectangle = GraphQLMapRectangleObjectType<int>('IntRectangle',
+    axisType: GraphQLIntType());
 
 mixin GraphQLRectangleObject<N extends num> {
   String get xAxis;

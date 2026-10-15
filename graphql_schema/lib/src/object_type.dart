@@ -31,13 +31,11 @@ class GraphQLStringPairType extends GraphQLObjectType<StringPair, String>
 
   @override
   Map<String, String> serialize(StringPair value) {
-    //print('SERIALIZE!! $value');
     return {'key': value.key, 'value': value.value};
   }
 
   @override
   StringPair deserialize(Map<String, String> serialized) {
-    //print('DESERIALIZE!! $serialized');
     final errKey = serialized.keys.firstWhereOrNull(
         (k) => fields.firstWhereOrNull((f) => f.name == k) == null);
 
@@ -147,12 +145,8 @@ abstract class GraphQLObjectType<T, V> extends GraphQLType<T, Map<String, V>>
   /// The list of fields that an object of this type is expected to have.
   List<GraphQLObjectField> get fields;
 
-  /// `true` if this type should be treated as an *interface*, which child types can [inheritFrom].
-  ///
-  /// In GraphQL, the parent class is *aware* of all the [possibleTypes] that can implement it.
+  /// `true` if this type should be treated as an *interface*, whose implementations are listed in [possibleTypes].
   final bool isInterface;
-
-  //final List<GraphQLObjectType> interfaces;
 
   final List<GraphQLObjectType> possibleTypes;
 
@@ -174,20 +168,8 @@ abstract class GraphQLObjectType<T, V> extends GraphQLType<T, Map<String, V>>
         descriptionThunk: descriptionThunk ?? this.descriptionThunk,
         inputFields: fields.map((f) => GraphQLInputObjectField(
             f.name, f.type.coerceToInputObject(),
-            description: f.description,
-            descriptionThunk: f.descriptionThunk)));
+            description: f.description, descriptionThunk: f.descriptionThunk)));
   }
-
-  /// Declares that this type inherits from another parent type.
-  ///
-  /// This also has the side effect of notifying the parent that this type is its descendant.
-  // void inheritFrom(GraphQLObjectType other) {
-  //   if (!_interfaces.contains(other)) {
-  //     _interfaces.add(other);
-  //     other._possibleTypes.add(this);
-  //     other._interfaces.forEach(inheritFrom);
-  //   }
-  // }
 
   GraphQLObjectType findBetterType(String key, Map input) {
     if (isInterface) {
@@ -244,6 +226,12 @@ abstract class GraphQLObjectType<T, V> extends GraphQLType<T, Map<String, V>>
       } else {
         var v = input[k];
         final converted = field.type.convert(v);
+
+        if (converted == null) {
+          out[k] = v;
+          continue;
+        }
+
         var result = field.type.validate(k.toString(), converted);
 
         if (!result.successful) {
@@ -261,29 +249,13 @@ abstract class GraphQLObjectType<T, V> extends GraphQLType<T, Map<String, V>>
     }
   }
 
-  /// Returns `true` if this type, or any of its parents, is a direct descendant of another given [type].
-  // bool isImplementationOf(GraphQLObjectType type) {
-  //   if (type == this) {
-  //     return true;
-  //   } else if (interfaces.contains(type)) {
-  //     return true;
-  //   } else if (interfaces.isNotEmpty) {
-  //     return interfaces.any((t) => t.isImplementationOf(type));
-  //   } else {
-  //     return false;
-  //   }
-  // }
-
   @override
   bool operator ==(other) {
     return other is GraphQLObjectType &&
         other.name == name &&
         other.description == description &&
         other.isInterface == isInterface &&
-        const ListEquality<GraphQLObjectField>().equals(other.fields, fields)
-//        const ListEquality<GraphQLObjectType>() Removed, as it causes a stack overflow :(
-//            .equals(other.interfaces, interfaces) &&
-        &&
+        const ListEquality<GraphQLObjectField>().equals(other.fields, fields) &&
         const ListEquality<GraphQLObjectType>()
             .equals(other.possibleTypes, possibleTypes);
   }
