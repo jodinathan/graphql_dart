@@ -5,6 +5,8 @@ import 'package:graphql_schema2/graphql_schema2.dart';
 import 'package:tuple/tuple.dart';
 import 'introspection.dart';
 
+export 'src/document_limits.dart';
+
 /// Transforms any [Map] into `Map<String, dynamic>`.
 Map<String, dynamic> foldToStringDynamic(Map? map) {
   if (map == null) {
