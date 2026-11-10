@@ -155,6 +155,7 @@ class GraphQL {
     final operation = parseDocument(text, sourceUrl: sourceUrl);
 
     return executeDocument(operation,
+        operationName: operationName,
         variableValues: variableValues,
         initialValue: initialValue,
         globalVariables: globalVariables);
@@ -200,25 +201,18 @@ class GraphQL {
     }
   }
 
-  Future executeRequest(GraphQLSchema schema, DocumentContext document,
-      {String? operationName,
-      Map<String, dynamic> variableValues = const <String, dynamic>{},
-      initialValue,
-      Map<String, dynamic> globalVariables = const <String, dynamic>{}}) async {
-    return executeDocument(document,
-        variableValues: variableValues,
-        initialValue: initialValue,
-        globalVariables: globalVariables);
-  }
-
   OperationDefinitionContext getOperation(
       DocumentContext document, String? operationName) {
     var ops = document.definitions.whereType<OperationDefinitionContext>();
     if (operationName == null) {
-      return ops.length == 1
-          ? ops.first
-          : throw GraphQLException.fromMessage(
-              'This document does not define any operations.');
+      return switch (ops.length) {
+        1 => ops.first,
+        0 => throw GraphQLException.fromMessage(
+            'This document does not define any operations.'),
+        final count => throw GraphQLException.fromMessage(
+            'This document defines $count operations; send operationName '
+            'to choose the one to run.'),
+      };
     } else {
       return ops.firstWhere((d) => d.name == operationName,
           orElse: (() => throw GraphQLException.fromMessage(
@@ -226,6 +220,11 @@ class GraphQL {
     }
   }
 
+  /// As variáveis de [operation]: o valor de [variableValues] conferido contra
+  /// o tipo declarado e guardado como veio, ou o padrão da declaração; a
+  /// variável `@jsonpath` guarda o [JsonPathArgument] que o resultado de um
+  /// campo anterior preenche. Quem converte é o [coerceArgumentValues], uma
+  /// vez só, como faz com o valor escrito no texto.
   Map<String, dynamic> coerceVariableValues(
       GraphQLSchema schema,
       OperationDefinitionContext operation,
@@ -268,7 +267,7 @@ class GraphQL {
                   ]))
               .toList());
         } else {
-          toSet = type.deserialize(value);
+          toSet = value;
         }
       }
 
@@ -282,14 +281,16 @@ class GraphQL {
     return coercedValues;
   }
 
+  /// Os caminhos das variáveis `@jsonpath` de [map], cada um terminado pelo
+  /// [JsonPathArgument] que ele preenche. A diretiva fica na definição da
+  /// variável, então o [JsonPathArgument] só aparece no primeiro nível de
+  /// [map], nunca dentro do valor de uma variável.
   List<List> makeLazy(Map<String, dynamic> map) {
     final lazy = <List>[];
 
     for (final val in map.values) {
       if (val is JsonPathArgument) {
         lazy.add([...val.splitted, val]);
-      } else if (val is Map) {
-        makeLazy(map);
       }
     }
 

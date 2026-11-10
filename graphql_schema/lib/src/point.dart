@@ -5,6 +5,9 @@ typedef Pair<N extends num> = Map<String, N>;
 const graphQLFloatPoint =
     GraphQLPointObjectType<double>('FloatPoint', axisType: GraphQLFloatType());
 
+const graphQLIntPoint =
+    GraphQLPointObjectType<int>('IntPoint', axisType: GraphQLIntType());
+
 const graphQLFloatMapPoint = GraphQLMapPointObjectType<double>('FloatMapPoint',
     axisType: GraphQLFloatType());
 
@@ -27,7 +30,7 @@ mixin GraphQLPointObject<N extends num> {
 
   Point<N> deserialize(Map<String, N> serialized) {
     return Point<N>(
-        (serialized[xAxis] ?? 0) as N, (serialized[xAxis] ?? 0) as N);
+        (serialized[xAxis] ?? 0) as N, (serialized[yAxis] ?? 0) as N);
   }
 }
 

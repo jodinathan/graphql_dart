@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:graphql_schema2/graphql_schema2.dart';
 import 'package:test/test.dart';
 
@@ -130,6 +132,19 @@ void main() {
               'DIGIMON_species': [pikachu, charizard]
             }),
         throwsUnsupportedError);
+  });
+
+  group('ponto', () {
+    test('o ponto inteiro existe e lê x e y separados', () {
+      expect(graphQLIntPoint.deserialize({'x': 3, 'y': 7}), const Point(3, 7));
+    });
+
+    test('o ponto decimal lê x e y separados', () {
+      expect(
+        graphQLFloatPoint.deserialize({'x': 1.5, 'y': 2.5}),
+        const Point(1.5, 2.5),
+      );
+    });
   });
 }
 

@@ -41,6 +41,43 @@ void main() {
       ]
     });
   });
+
+  test('operationName picks the operation of a document with several',
+      () async {
+    var schema = graphQLSchema(
+      queryType: GraphQLDynamicObjectType('api', fields: [
+        GraphQLObjectField('one', graphQLInt, resolve: (_, __) => 1),
+        GraphQLObjectField('two', graphQLInt, resolve: (_, __) => 2),
+      ]),
+    );
+
+    var result = await GraphQL(schema).parseAndExecute(
+      'query First { one } query Second { two }',
+      operationName: 'Second',
+    );
+
+    expect(result, {'two': 2});
+  });
+
+  test('a document with several operations and no operationName is refused',
+      () {
+    var schema = graphQLSchema(
+      queryType: GraphQLDynamicObjectType('api', fields: [
+        GraphQLObjectField('one', graphQLInt, resolve: (_, __) => 1),
+      ]),
+    );
+
+    expect(
+      () => GraphQL(schema)
+          .parseAndExecute('query First { one } query Second { one }'),
+      throwsA(isA<GraphQLException>().having(
+        (e) => e.errors.single.message,
+        'message',
+        'This document defines 2 operations; send operationName to choose '
+            'the one to run.',
+      )),
+    );
+  });
 }
 
 class Todo {
